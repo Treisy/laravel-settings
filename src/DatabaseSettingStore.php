@@ -90,11 +90,12 @@ class DatabaseSettingStore extends SettingStore
 			->lists('key');
 
 		$updateData = array();
+		$insertData = array_dot($data);
 
 		foreach ($keys as $key) {
-			if (isset($data[$key])) {
-				$updateData[$key] = $data[$key];
-				unset($data[$key]);
+			if (isset($insertData[$key])) {
+				$updateData[$key] = $insertData[$key];
+				unset($insertData[$key]);
 			}
 		}
 
@@ -104,36 +105,39 @@ class DatabaseSettingStore extends SettingStore
 				->update(array('value' => $value));
 		}
 
-		if ($data) {
-			$dbData = $this->prepareWriteData($data);
+		if ($insertData) {
 			$this->newQuery(true)
-				->insert($dbData);
+				->insert($this->prepareInsertData($insertData));
 		}
 	}
 
 	/**
 	 * Transforms settings data into an array ready to be insterted into the
-	 * database.
-	 * 
-	 * ['foo' => ['bar' => 1, 'baz', => 2]] is first transformed into
-	 * ['foo.bar' => 1, 'foo.baz' => 2] which is then transformed into
-	 * [['key' => 'foo.bar', 'value' => 1], ...]
-	 * 
-	 * ['foo' => ['bar', 'baz']] is transformed into
-	 * ['foo.0' => 'bar', 'foo.1' => 'baz'] and so on.
+	 * database. Call array_dot on a multidimensional array before passing it
+	 * into this method!
 	 *
-	 * @param  array $data
+	 * @param  array $data Call array_dot on a multidimensional array before passing it into this method!
 	 *
 	 * @return array
 	 */
-	protected function prepareWriteData($data)
+	protected function prepareInsertData(array $data)
 	{
-		$data = array_dot($data);
-		$extra = $this->extraColumns;
+		$dbData = array();
 
-		return array_map(function($key, $value) use($extra) {
-			return array_merge($extra, array('key' => $key, 'value' => $value));
-		}, array_keys($data), array_values($data));
+		if ($this->extraColumns) {
+			foreach ($data as $key => $value) {
+				$dbData[] = array_merge(
+					$this->extraColumns,
+					array('key' => $key, 'value' => $value)
+				);
+			}
+		} else {
+			foreach ($data as $key => $value) {
+				$dbData[] = array('key' => $key, 'value' => $value);
+			}
+		}
+
+		return $dbData;
 	}
 
 	/**

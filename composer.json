@@ -17,7 +17,8 @@
         "illuminate/database": "Save settings to a database table."
     },
     "require-dev": {
-        "mockery/mockery": "0.9.*"
+        "mockery/mockery": "0.9.*",
+        "illuminate/database": "~5.0"
     },
     "autoload": {
         "psr-4": {
